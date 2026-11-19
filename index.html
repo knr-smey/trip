@@ -714,6 +714,32 @@ templeToggle.addEventListener("click", function(){
   setTemplePanelCollapsed(!templePanel.classList.contains("collapsed"));
 });
 
+/* ---- keep the last stops reachable above the fixed bottom UI ----
+   The temple panel and (on phones) the day switch are pinned to the bottom of the
+   screen. The map's bottom padding tracks how much of the screen they cover, so you
+   can always scroll every stop up above them. */
+var mapWrap = document.getElementById("map-wrap");
+var daySwitch = document.getElementById("day-switch");
+
+function updateBottomClearance(){
+  var coveredFrom = window.innerHeight;
+  [templePanel, daySwitch].forEach(function(el){
+    if (getComputedStyle(el).position !== "fixed") return; // day switch sits in the header on desktop
+    var r = el.getBoundingClientRect();
+    if (r.height > 0) coveredFrom = Math.min(coveredFrom, r.top);
+  });
+  mapWrap.style.paddingBottom = Math.max(40, window.innerHeight - coveredFrom + 24) + "px";
+}
+
+if (window.ResizeObserver){
+  // fires when the panel opens, collapses, appears (Day 2) or disappears (Day 1)
+  var clearanceObserver = new ResizeObserver(updateBottomClearance);
+  clearanceObserver.observe(templePanel);
+  clearanceObserver.observe(daySwitch);
+}
+window.addEventListener("resize", updateBottomClearance);
+updateBottomClearance();
+
 /* ============================================================
    MODAL
    ============================================================ */
