@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>កន្លែងទៅលេងនៅ សៀមរាប</title>
+<link rel="preload" as="image" href="assets/bg-angkor.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -30,11 +31,27 @@
     position:fixed; inset:0; z-index:-1; /* stays behind all in-flow page content */
     background-image:
       linear-gradient(180deg, rgba(250,250,248,0.55) 0%, rgba(250,250,248,0.3) 30%, rgba(250,250,248,0.65) 100%),
-      url('assets/bg-angkor.png');
+      url('assets/bg-angkor.jpg');
     background-size:cover;
     background-position:center 60%;
     background-repeat:no-repeat;
   }
+
+  /* ---------- first-load screen: stays up until the background photo + Khmer font are ready ---------- */
+  #loader{
+    position:fixed; inset:0; z-index:100;
+    background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    transition:opacity .4s ease, visibility .4s ease;
+  }
+  #loader.done{ opacity:0; visibility:hidden; }
+  .loader-ring{
+    width:44px; height:44px; border-radius:50%;
+    border:4px solid var(--orange-tint); border-top-color:var(--orange);
+    animation:loader-spin .8s linear infinite;
+  }
+  .loader-text{ font-size:14px; font-weight:600; color:var(--orange); }
+  @keyframes loader-spin{ to{ transform:rotate(360deg); } }
 
   .card{
     background:var(--white);
@@ -241,6 +258,11 @@
 </style>
 </head>
 <body>
+
+<div id="loader" role="status" aria-live="polite">
+  <div class="loader-ring"></div>
+  <div class="loader-text">កំពុងផ្ទុក...</div>
+</div>
 
 <div id="bg-photo"></div>
 
@@ -800,9 +822,24 @@ function getIllustrationSVG(key){
    INIT
    ============================================================ */
 
-// wait for the Khmer web font so label wrapping is measured with the real glyph widths
+// Hold the loading screen until the background photo and the Khmer web font are ready
+// (the font also matters for measuring label wrapping), capped so a slow connection
+// never gets stuck. The route animation starts only once the page is revealed.
+function whenImageLoaded(src){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = img.onerror = resolve;
+    img.src = src;
+  });
+}
 var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-Promise.race([fontsReady, new Promise(function(r){ setTimeout(r, 600); })]).then(rebuildRoute);
+var pageReady = Promise.all([fontsReady, whenImageLoaded("assets/bg-angkor.jpg")]);
+var giveUp = new Promise(function(r){ setTimeout(r, 5000); });
+
+Promise.race([pageReady, giveUp]).then(function(){
+  document.getElementById("loader").classList.add("done");
+  rebuildRoute();
+});
 
 })();
 </script>
