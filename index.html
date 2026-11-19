@@ -840,7 +840,7 @@ function openModal(index){
 
   modalNext.innerHTML = s.driveToNext
     ? "ទៅកន្លែងបន្ទាប់៖ <b>" + s.driveToNext + "</b>"
-    : "<b>កន្លែងចុងក្រោយនៃថ្ងៃ</b>";
+    : "<b>កន្លែងចុងក្រោយ</b>";
 
   modalMaps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(s.q || s.name);
   renderModalImage(s);
