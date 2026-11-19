@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>ផែនទីដំណើរ សៀមរាប</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --orange:#FF6B1A;
+    --orange-dark:#E55300;
+    --orange-tint:#FFF1E6;
+    --white:#FFFFFF;
+    --bg:#FAFAF8;
+    --text:#1D1D1F;
+    --muted:#8A8A8A;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:100%;
+    font-family:'Kantumruy Pro', 'Inter', -apple-system, sans-serif;
+    color:var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  html{ background:var(--bg); }
+  body{ background:transparent; } /* an opaque body bg would paint over the z-index:-1 photo */
+  #bg-photo{
+    position:fixed; inset:0; z-index:-1; /* stays behind all in-flow page content */
+    background-image:
+      linear-gradient(180deg, rgba(250,250,248,0.55) 0%, rgba(250,250,248,0.3) 30%, rgba(250,250,248,0.65) 100%),
+      url('assets/bg-angkor.png');
+    background-size:cover;
+    background-position:center 60%;
+    background-repeat:no-repeat;
+  }
+
+  .card{
+    background:var(--white);
+    border-radius:16px;
+    box-shadow:0 8px 28px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  }
+
+  /* ---------- sticky top bar: title + day pills ---------- */
+  #top-bar{
+    position:sticky; top:0; z-index:20;
+    background:var(--white);
+    border-bottom:1px solid rgba(29,29,31,0.06);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+    padding:14px 22px;
+  }
+  #title-block .kicker{
+    font-size:12px; font-weight:600;
+    color:var(--orange); margin-bottom:2px; line-height:1.5;
+  }
+  #title-block h1{
+    margin:0; font-size:20px; line-height:1.45; font-weight:700;
+    color:var(--text);
+  }
+  #title-block h1 span{color:var(--orange);}
+
+  #day-switch{ display:flex; gap:8px; flex:none; }
+  .pill{
+    border:1.5px solid var(--orange);
+    background:var(--white);
+    color:var(--orange);
+    font-family:inherit;
+    font-weight:700;
+    font-size:13px;
+    padding:9px 18px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:all .15s ease;
+    -webkit-user-select:none; user-select:none;
+  }
+  .pill.active{
+    background:var(--orange); color:var(--white); border-color:var(--orange);
+  }
+  .pill:hover{ transform:translateY(-1px); }
+
+  /* ---------- route map ---------- */
+  #map-wrap{
+    width:100%;
+    max-width:620px;
+    margin:0 auto;
+    padding:36px 24px 140px;
+  }
+  #route-svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .stop-group{ cursor:pointer; }
+  .stop-circle{ transition:fill .15s ease; }
+  .stop-hit{ fill:transparent; }
+
+  /* ---------- day2 temple panel ---------- */
+  #temple-panel{
+    position:fixed; bottom:18px; left:18px; z-index:10;
+    padding:16px 18px;
+    max-width:min(380px, calc(100vw - 36px));
+    display:none;
+  }
+  #temple-panel.show{display:block;}
+  #temple-toggle{
+    display:flex; align-items:center; gap:8px;
+    width:100%; margin:0 0 10px; padding:0;
+    background:none; border:none; cursor:pointer;
+    font-family:inherit; font-size:14px; font-weight:700; color:var(--text);
+    text-align:left;
+  }
+  #temple-toggle .toggle-title{ flex:1; }
+  #temple-count{ color:var(--orange); font-size:13px; }
+  #temple-toggle .chevron{ flex:none; color:var(--orange); transition:transform .2s ease; }
+  #temple-panel.collapsed #temple-toggle{ margin-bottom:0; }
+  #temple-panel.collapsed #temple-toggle .chevron{ transform:rotate(180deg); }
+  #temple-panel.collapsed #chip-list{ display:none; }
+  #chip-list{
+    display:flex; flex-wrap:wrap; gap:8px;
+    max-height:34vh; overflow-y:auto;
+  }
+  .chip{
+    border:1.5px solid var(--orange);
+    background:var(--white);
+    color:var(--orange-dark);
+    font-family:inherit;
+    font-weight:600;
+    font-size:12.5px;
+    padding:7px 13px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:all .15s ease;
+    -webkit-user-select:none; user-select:none;
+  }
+  .chip.selected{
+    background:var(--orange); color:var(--white); border-color:var(--orange);
+  }
+  .chip:hover{ transform:translateY(-1px); }
+
+  /* ---------- modal ---------- */
+  #modal-backdrop{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(29,29,31,0.45);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:20px;
+  }
+  #modal-backdrop.show{ display:flex; }
+  #modal-card{
+    background:var(--white);
+    border-radius:22px;
+    max-width:420px;
+    width:100%;
+    max-height:86vh;
+    overflow-y:auto;
+    position:relative;
+    box-shadow:0 24px 60px rgba(0,0,0,0.25);
+    padding:0 26px 26px;
+  }
+  #modal-close{
+    position:absolute; top:14px; right:14px; z-index:2;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:none;
+    background:rgba(255,255,255,0.95);
+    box-shadow:0 2px 10px rgba(0,0,0,0.25);
+    color:var(--orange-dark);
+    font-size:18px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    line-height:1;
+  }
+  /* full-bleed photo across the top of the card */
+  #modal-illustration{
+    position:relative;
+    width:calc(100% + 52px); height:210px;
+    margin:0 -26px 18px;
+    background:var(--orange-tint);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  #modal-illustration svg{ width:100%; height:100%; }
+  #modal-illustration img{ width:100%; height:100%; object-fit:cover; display:block; }
+  #modal-credit{
+    position:absolute; right:8px; bottom:6px;
+    font-family:'Inter', sans-serif;
+    font-size:10px; color:rgba(255,255,255,0.92);
+    text-shadow:0 1px 3px rgba(0,0,0,0.7);
+    text-decoration:none;
+    max-width:80%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #modal-meta{
+    font-size:13px; font-weight:700; color:var(--orange); margin-bottom:4px;
+  }
+  #modal-title{
+    font-size:21px; font-weight:800; margin:0 0 8px; color:var(--text);
+  }
+  #modal-tips{
+    margin:0 0 14px; padding:0; list-style:none;
+  }
+  #modal-tips li{
+    font-size:13px; color:var(--text); line-height:1.5;
+    padding-left:18px; position:relative; margin-bottom:6px;
+  }
+  #modal-tips li::before{
+    content:"";
+    position:absolute; left:0; top:7px;
+    width:6px; height:6px; border-radius:50%;
+    background:var(--orange);
+  }
+  #modal-next{
+    font-size:12.5px; color:var(--muted); margin-bottom:16px;
+    background:var(--orange-tint); padding:8px 12px; border-radius:10px;
+  }
+  #modal-next b{ color:var(--orange-dark); }
+  #modal-maps{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--orange); color:var(--white);
+    font-weight:700; font-size:13.5px;
+    padding:11px 18px; border-radius:12px;
+    text-decoration:none;
+    border:none; cursor:pointer;
+    width:100%; justify-content:center;
+  }
+  #modal-maps:hover{ background:var(--orange-dark); }
+
+  @media (max-width:640px){
+    #top-bar{ padding:12px 16px; justify-content:center; }
+    #title-block{ text-align:center; }
+    #title-block h1{ font-size:18px; }
+    #map-wrap{ padding:24px 16px 150px; }
+
+    /* Day switch docks to the bottom on phones — thumb-reachable, like a tab bar */
+    #day-switch{
+      position:fixed; z-index:30;
+      left:12px; right:12px;
+      bottom:calc(12px + env(safe-area-inset-bottom));
+      background:var(--white);
+      padding:6px;
+      border-radius:999px;
+      box-shadow:0 8px 28px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06);
+      gap:6px;
+    }
+    #day-switch .pill{ flex:1; padding:11px 0; font-size:14px; text-align:center; }
+    #day-switch .pill:hover{ transform:none; }
+
+    /* everything else that sits at the bottom moves up above the bar */
+    #temple-panel{
+      left:12px; right:12px; max-width:none;
+      bottom:calc(76px + env(safe-area-inset-bottom));
+      padding:13px 15px;
+    }
+    #chip-list{ max-height:28vh; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bg-photo"></div>
+
+<header id="top-bar">
+  <div id="title-block">
+    <div class="kicker">ដំណើរកម្សាន្ត ២ ថ្ងៃ</div>
+    <h1>ផែនទីដំណើរ <span>សៀមរាប</span></h1>
+  </div>
+  <div id="day-switch">
+    <button class="pill active" data-day="1">ថ្ងៃទី ១</button>
+    <button class="pill" data-day="2">ថ្ងៃទី ២</button>
+  </div>
+</header>
+
+<main id="map-wrap">
+  <svg id="route-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+</main>
+
+<div id="temple-panel" class="card">
+  <button id="temple-toggle" type="button" aria-expanded="true" aria-controls="chip-list">
+    <span class="toggle-title">ជ្រើសរើសប្រាសាទ បន្ទាប់ពីអង្គរវត្ត</span>
+    <span id="temple-count"></span>
+    <svg class="chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div id="chip-list"></div>
+</div>
+
+<div id="modal-backdrop">
+  <div id="modal-card">
+    <button id="modal-close">&times;</button>
+    <div id="modal-illustration"></div>
+    <div id="modal-meta"></div>
+    <h2 id="modal-title"></h2>
+    <ul id="modal-tips"></ul>
+    <div id="modal-next"></div>
+    <a id="modal-maps" href="#" target="_blank" rel="noopener">📍 បើកក្នុង Google Maps</a>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   COLORS
+   ============================================================ */
+var COLOR_ORANGE = "#FF6B1A";
+var COLOR_ORANGE_DARK = "#E55300";
+
+/* ============================================================
+   TRIP DATA
+   ============================================================ */
+
+/* `q` is the English search term for Google Maps — Khmer names search less reliably */
+function stop(time, name, desc, tips, icon, drive, q, img){
+  return { time:time, name:name, desc:desc, tips:tips, icon:icon, driveToNext: drive || null, q:q, img:img || null };
+}
+
+var DAY1_STOPS = [
+  stop("៣:០០ ព្រឹក", "ចេញដំណើរ ពីភ្នំពេញ",
+    "ចេញដំណើរពេលទីក្រុងនៅស្ងាត់ — ការចេញពីព្រលឹម គឺជាវិធីតែមួយគត់ ដើម្បីទៅដល់ភ្នំគូលែន និងប្រាសាទបន្ទាយស្រី ក្នុងថ្ងៃតែមួយ។",
+    ["ចាក់សាំង និងចូលបន្ទប់ទឹកមុនចេញដំណើរ — ផ្លូវដំបូងមានកន្លែងឈប់តិច។", "យកភួយតាមខ្លួន — ម៉ាស៊ីនត្រជាក់ក្នុងឡានត្រជាក់ខ្លាំងពេលយប់។"],
+    "moon", "បើកបរ ≈ ១.៥–២ ម៉ោង", "Phnom Penh", "phnompenh"),
+  stop("៥:០០ ព្រឹក", "អាហារពេលព្រឹក នៅស្គន់",
+    "ទីប្រជុំជនតាមផ្លូវ ល្បីខាងបបរ គុយទាវ និងអាពីងបំពង — ជាកន្លែងឈប់សម្រាកដ៏ពេញនិយមតាមផ្លូវ។",
+    ["សាកល្បងអាពីងបំពងម្តង — ជាម្ហូបពិសេសរបស់តំបន់នេះ។", "បបរសាច់ជ្រូក ជាជម្រើសស្រាលៗ និងងាយញ៉ាំ។"],
+    "bowl", "បើកបរ ≈ ៤–៤.៥ ម៉ោង", "Skun, Kampong Cham", "skun"),
+  stop("១០:០០ ព្រឹក", "ភ្នំគូលែន",
+    "ភ្នំដ៏ពិសិដ្ឋ មានទឹកធ្លាក់ ស្ទឹងលិង្គមួយពាន់ដែលឆ្លាក់លើថ្មក្នុងទឹក និងព្រះពុទ្ធរូបផ្ទំដ៏ធំ ឆ្លាក់លើថ្ម។",
+    ["ត្រូវទិញសំបុត្រភ្នំគូលែនដាច់ដោយឡែក — មិនរួមក្នុងសំបុត្រអង្គរទេ។", "ផ្លូវឡើងភ្នំបើកតែមួយទិសតាមម៉ោងកំណត់ — សូមពិនិត្យម៉ោងមុនទៅ។"],
+    "waterfall", "បើកបរ ≈ ១ ម៉ោង", "Phnom Kulen", "kulen"),
+  stop("២:០០ រសៀល", "ប្រាសាទ បន្ទាយស្រី",
+    "ប្រាសាទសតវត្សរ៍ទី១០ សាងពីថ្មភក់ពណ៌ផ្កាឈូក ល្បីខាងចម្លាក់ល្អិតល្អន់បំផុតនៅតំបន់អង្គរ។",
+    ["ទៅពេលរសៀល — ពន្លឺថ្ងៃធ្វើឲ្យថ្មពណ៌ផ្កាឈូកភ្លឺស្រស់។", "ត្រូវការសំបុត្រអង្គរ ទោះបីប្រាសាទនេះនៅក្រៅរង្វង់អង្គរក៏ដោយ។"],
+    "pinktemple", "បើកបរ ≈ ៤៥ នាទី", "Banteay Srei", "banteaysrei"),
+  stop("៤:៣០ ល្ងាច", "ត្រឡប់ទៅ សណ្ឋាគារ",
+    "ចូលសណ្ឋាគារ សម្រាក រួចដើរលេង Pub Street និងផ្សាររាត្រី មុនចូលគេងឲ្យឆាប់ — ថ្ងៃទី២ ចាប់ផ្តើមមុនថ្ងៃរះ។",
+    ["គេងឲ្យឆាប់ — ថ្ងៃស្អែកត្រូវក្រោកម៉ោង ៤ ព្រឹក ដើម្បីមើលថ្ងៃរះនៅអង្គរវត្ត។", "ម៉ាស្សាជើងនៅ Pub Street ដើម្បីបន្ធូរកម្លាំងក្រោយធ្វើដំណើរវែង។"],
+    "hotel", null, "Siem Reap", "pubstreet")
+];
+
+var ANGKOR_WAT_STOP = stop("៥:០០ ព្រឹក", "ប្រាសាទ អង្គរវត្ត (ថ្ងៃរះ)",
+  "វិមានសាសនាធំជាងគេលើពិភពលោក និងជាបេះដូងនៃអាណាចក្រអង្គរ — ការមើលថ្ងៃរះពីក្រោយកំពូលទាំងប្រាំ គឺជាពេលវេលាដ៏សំខាន់បំផុតនៃដំណើរនេះ។",
+  ["ទៅដល់ម៉ោង ៥ ព្រឹក ដើម្បីយកកន្លែងល្អនៅមុខស្រះទឹក មុនមនុស្សច្រើន។", "យកពិលតាមខ្លួន — ផ្លូវដើរចូលងងឹត គ្មានភ្លើងបំភ្លឺ។"],
+  "sunrise", "បើកបរ ≈ ១០–១៥ នាទី", "Angkor Wat", "angkorwat");
+
+var BACK_TO_HOTEL_STOP = stop("", "ត្រឡប់ទៅ សណ្ឋាគារ",
+  "បញ្ចប់ថ្ងៃទី២ — ត្រឡប់ចូលទីក្រុងវិញ ដើម្បីសម្រាក ញ៉ាំអាហារពេលល្ងាច និងរំលឹកដំណើរទស្សនាប្រាសាទ។",
+  ["ផឹកទឹកឲ្យបានច្រើន — ការដើរទស្សនាប្រាសាទពីរថ្ងៃក្រោមកម្តៅ ធ្វើឲ្យហត់ខ្លាំង។", "កក់ការម៉ាស្សាសម្រាប់យប់នេះ — ជើងរបស់អ្នកនឹងអរគុណ។"],
+  "hotel", null, "Siem Reap", "pubstreet");
+
+var TEMPLE_OPTIONS = [
+  { id:"bayon", name:"ប្រាសាទ បាយ័ន", q:"Bayon Temple", img:"bayon",
+    desc:"ល្បីដោយសារព្រះភក្ត្រថ្មធំៗញញឹមស្រស់ ចំនួន ២១៦ — ជាកន្លែងដែលគេថតរូបច្រើនបំផុតមួយនៅអង្គរធំ។",
+    tips:["ឡើងទៅជាន់ខាងលើ ដើម្បីមើលព្រះភក្ត្រឲ្យបានជិត។", "ទៅពេលព្រឹកជ្រៅ ពេលពន្លឺចាំងលើព្រះភក្ត្រស្មើៗគ្នា។"], icon:"facetemple" },
+  { id:"baphuon", name:"ប្រាសាទ បាពួន", q:"Baphuon", img:"baphuon",
+    desc:"ប្រាសាទភ្នំខ្ពស់ពីសតវត្សរ៍ទី១១ ដែលធ្លាប់មានព្រះពុទ្ធរូបផ្ទំដ៏ធំ សាងនៅផ្នែកខាងលិច។",
+    tips:["ជណ្តើរចោតណាស់ — សូមកាន់ដៃជណ្តើរ។", "មនុស្សតិចជាងបាយ័ន — ល្អសម្រាប់សម្រាកបន្តិច។"], icon:"pyramidtemple" },
+  { id:"terrace", name:"ព្រះលាន ជល់ដំរី", q:"Terrace of the Elephants", img:"terrace",
+    desc:"វេទិកាទស្សនាវែងរបស់ព្រះមហាក្សត្រ មានចម្លាក់ដំរីទំហំប៉ុនពិត ប្រើសម្រាប់ពិធីបុណ្យ និងក្បួនដង្ហែ។",
+    tips:["សង្កេតមើលប្រមោយដំរី ដែលឆ្លាក់ជាសសរទ្រវេទិកា។", "ឈប់មើលបន្តិចបានហើយ — ល្អទៅក្រោយប្រាសាទបាពួនភ្លាម។"], icon:"elephant" },
+  { id:"taprohm", name:"ប្រាសាទ តាព្រហ្ម", q:"Ta Prohm", img:"taprohm",
+    desc:"ប្រាសាទ «ក្នុងព្រៃ» ដែលដើមឈើធំៗដុះគ្របដណ្តប់ពាក់កណ្តាល — ល្បីតាមរយៈខ្សែភាពយន្ត Tomb Raider។",
+    tips:["ទ្វារឫសឈើដ៏ល្បីមានមនុស្សច្រើន — ទៅឲ្យឆាប់ ឬរង់ចាំបន្តិច។", "ប្រយ័ត្នដើរ — ថ្មមិនរាបស្មើ ហើយមានឫសឈើគ្របដណ្តប់។"], icon:"jungletemple" },
+  { id:"banteaykdei", name:"ប្រាសាទ បន្ទាយក្តី", q:"Banteay Kdei", img:"banteaykdei",
+    desc:"វត្តអារាមព្រះពុទ្ធសាសនាដ៏ស្ងប់ស្ងាត់ មានទីធ្លាស្ងប់ និងរានហាលចាស់ៗគ្របដោយស្លែ ដែលភ្ញៀវមកតិច។",
+    tips:["កន្លែងល្អសម្រាប់គេចពីមនុស្សច្រើន មួយភ្លែត។", "ទៅមើលស្រះស្រង់ ដែលនៅទល់មុខផ្លូវផងដែរ។"], icon:"quiettemple" },
+  { id:"takeo", name:"ប្រាសាទ តាកែវ", q:"Ta Keo", img:"takeo",
+    desc:"ប្រាសាទភ្នំដែលសាងមិនទាន់រួច ធ្វើពីថ្មភក់សុទ្ធ ផ្តល់ឱកាសកម្រក្នុងការមើលការសាងសង់ខ្មែរបុរាណ។",
+    tips:["ជណ្តើរកណ្តាលចោត ប៉ុន្តែទិដ្ឋភាពពីលើស្អាតបំផុតមួយក្នុងតំបន់។", "មានម្លប់តិច — យកទឹក និងមួកតាមខ្លួន។"], icon:"blocktemple" },
+  { id:"preahkhan", name:"ប្រាសាទ ព្រះខ័ន", q:"Preah Khan", img:"preahkhan",
+    desc:"វត្តអារាមធំទូលាយ មានរានហាលវែងៗពោរពេញដោយវល្លិ៍ ស្រដៀងតាព្រហ្ម តែមនុស្សតិចជាងច្រើន។",
+    tips:["ដើរតាមរានហាលកណ្តាលត្រង់ ដើម្បីថតរូបបានស្អាត។", "ទុកពេលឲ្យបានច្រើន — ជាប្រាសាទធំមួយ។"], icon:"vinetemple" },
+  { id:"prerup", name:"ប្រាសាទ ប្រែរូប (ថ្ងៃលិច)", q:"Pre Rup", img:"prerup",
+    desc:"ប្រាសាទភ្នំធ្វើពីឥដ្ឋ និងថ្មបាយក្រៀមពណ៌ក្រហមក្តៅ ជាកន្លែងមើលថ្ងៃលិចល្អបំផុតមួយនៅអង្គរ។",
+    tips:["ទៅដល់យ៉ាងតិច ៤៥ នាទីមុនថ្ងៃលិច ដើម្បីយកកន្លែងល្អនៅជាន់លើ។", "ឥដ្ឋចាំងពណ៌ទឹកក្រូចក្រហមពេលល្ងាច — ល្អសម្រាប់ថតរូប។"], icon:"sunsettemple" },
+  { id:"bakheng", name:"ភ្នំបាខែង (ថ្ងៃលិច)", q:"Phnom Bakheng", img:"bakheng",
+    desc:"ប្រាសាទលើកំពូលភ្នំ មើលឃើញថ្ងៃលិចពីលើព្រៃអង្គរ និងកំពូលអង្គរវត្តពីចម្ងាយ។",
+    tips:["កំណត់ចំនួនភ្ញៀវនៅលើកំពូល — ទៅឲ្យឆាប់សម្រាប់ថ្ងៃលិច។", "ផ្លូវឡើងខ្លី តែចោត — ពាក់ស្បែកជើងឲ្យសមរម្យ។"], icon:"hilltemple" }
+];
+
+var DAY2_TEMPLE_TIMES = ["៨:៣០ ព្រឹក","៩:៤៥ ព្រឹក","១០:៤៥ ព្រឹក","១១:៤៥ ព្រឹក","១:៣០ រសៀល","២:៣០ រសៀល","៣:៣០ រសៀល","៤:៣០ ល្ងាច","៥:១៥ ល្ងាច"];
+
+var KM_DIGITS = "០១២៣៤៥៦៧៨៩";
+function kmNum(n){
+  var s = (n < 10 ? "0" : "") + n;
+  return s.replace(/[0-9]/g, function(d){ return KM_DIGITS[+d]; });
+}
+
+var FONT_STACK = "'Kantumruy Pro', Inter, sans-serif";
+
+/* ============================================================
+   ROUTE BUILDING
+   ============================================================ */
+
+var currentDay = 1;
+var selectedTempleOrder = []; // array of temple ids, in click order
+
+function buildRoute(){
+  if (currentDay === 1) return DAY1_STOPS.slice();
+
+  var route = [Object.assign({}, ANGKOR_WAT_STOP)];
+  for (var i = 0; i < selectedTempleOrder.length; i++){
+    var opt = TEMPLE_OPTIONS.filter(function(t){ return t.id === selectedTempleOrder[i]; })[0];
+    if (!opt) continue;
+    var time = DAY2_TEMPLE_TIMES[i] || "";
+    route.push(stop(time, opt.name, opt.desc, opt.tips, opt.icon, "បើកបរ ≈ ១០–១៥ នាទី", opt.q, opt.img));
+  }
+  route.push(Object.assign({}, BACK_TO_HOTEL_STOP));
+  // last temple should drive to hotel, not another temple
+  if (route.length > 1) route[route.length - 2].driveToNext = "បើកបរ ≈ ២០ នាទី";
+  return route;
+}
+
+/* ============================================================
+   FLAT SVG ROUTE MAP (winding line + numbered circle stops)
+   ============================================================ */
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var svg = document.getElementById("route-svg");
+var measureCtx = document.createElement("canvas").getContext("2d");
+
+var MARGIN_TOP = 46;
+var MARGIN_BOTTOM = 46;
+var ROAD_DRAW_DURATION = 2.4; // seconds, matches the original "road draws in" pacing
+
+var activeRoute = [];
+var markerEls = [];     // { group, circle, popDelay }
+var pendingTimers = [];
+var selectedIndex = -1;
+var LAYOUT = null;
+
+/* Sizes itself to the actual viewport rather than just shrinking a fixed-size
+   graphic — on a phone, the map's internal coordinate space is close to the
+   real pixel width, so circles/text render near their intended on-screen size
+   instead of looking tiny. */
+function computeLayout(){
+  var w = window.innerWidth;
+  if (w < 480){
+    return { contentWidth: Math.max(300, w - 32), amplitude: 56, stepY: 132, circleR: 18, labelMaxWidth: 170, fontNum: 12.5, fontName: 15 };
+  }
+  if (w < 820){
+    return { contentWidth: 520, amplitude: 95, stepY: 146, circleR: 20, labelMaxWidth: 190, fontNum: 13, fontName: 16 };
+  }
+  return { contentWidth: 600, amplitude: 110, stepY: 150, circleR: 20, labelMaxWidth: 210, fontNum: 13, fontName: 16 };
+}
+
+function svgEl(tag, attrs){
+  var el = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+function computePoints(n){
+  var pts = [];
+  var centerX = LAYOUT.contentWidth / 2;
+  for (var i = 0; i < n; i++){
+    var t = n > 1 ? i / (n - 1) : 0;
+    var y = MARGIN_TOP + i * LAYOUT.stepY;
+    var x = centerX + Math.sin(t * Math.PI * 1.7) * LAYOUT.amplitude;
+    pts.push({ x: x, y: y });
+  }
+  return pts;
+}
+
+/* Smooth Catmull-Rom-through-points, converted to cubic bezier segments */
+function smoothPathD(pts){
+  if (pts.length < 2) return "";
+  var d = "M" + pts[0].x.toFixed(1) + "," + pts[0].y.toFixed(1);
+  for (var i = 0; i < pts.length - 1; i++){
+    var p0 = pts[i - 1] || pts[i];
+    var p1 = pts[i];
+    var p2 = pts[i + 1];
+    var p3 = pts[i + 2] || p2;
+    var c1x = p1.x + (p2.x - p0.x) / 6;
+    var c1y = p1.y + (p2.y - p0.y) / 6;
+    var c2x = p2.x - (p3.x - p1.x) / 6;
+    var c2y = p2.y - (p3.y - p1.y) / 6;
+    d += " C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " " + c2x.toFixed(1) + "," + c2y.toFixed(1) + " " + p2.x.toFixed(1) + "," + p2.y.toFixed(1);
+  }
+  return d;
+}
+
+function wrapSvgText(text, font, maxWidth){
+  measureCtx.font = font;
+  var words = text.split(" ");
+  var lines = [];
+  var line = "";
+  for (var i = 0; i < words.length; i++){
+    var test = line ? line + " " + words[i] : words[i];
+    if (measureCtx.measureText(test).width > maxWidth && line){
+      lines.push(line);
+      line = words[i];
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.slice(0, 3);
+}
+
+var LABEL_GAP = 12;   // space between circle and its label
+var EDGE_PAD = 6;     // keep labels this far inside the map's edge
+var NAME_LINE_H = 22; // Khmer stacks vowels/subscripts above and below, so it needs extra leading
+
+function buildRouteSVG(route, skipAnimation){
+  pendingTimers.forEach(function(id){ clearTimeout(id); });
+  pendingTimers = [];
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  markerEls = [];
+  selectedIndex = -1;
+  LAYOUT = computeLayout();
+
+  var pts = computePoints(route.length);
+  var height = MARGIN_TOP + Math.max(0, route.length - 1) * LAYOUT.stepY + MARGIN_BOTTOM;
+  svg.setAttribute("viewBox", "0 0 " + LAYOUT.contentWidth + " " + height);
+  svg.setAttribute("preserveAspectRatio", "xMidYMin meet");
+
+  // the winding route line
+  var pathEl = svgEl("path", {
+    d: smoothPathD(pts),
+    fill: "none",
+    stroke: COLOR_ORANGE,
+    "stroke-width": 5,
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round"
+  });
+  svg.appendChild(pathEl);
+
+  // stop markers
+  for (var i = 0; i < route.length; i++){
+    var p = pts[i];
+    var s = route[i];
+    // put the label on whichever side of the line has more room, and wrap it to fit that room
+    var centerX = LAYOUT.contentWidth / 2;
+    var side = p.x > centerX + 1 ? -1 : 1;
+    var labelX = side * (LAYOUT.circleR + LABEL_GAP);
+    var anchor = side === 1 ? "start" : "end";
+    var room = side === 1
+      ? LAYOUT.contentWidth - EDGE_PAD - (p.x + LAYOUT.circleR + LABEL_GAP)
+      : p.x - LAYOUT.circleR - LABEL_GAP - EDGE_PAD;
+    var labelWidth = Math.max(60, Math.min(LAYOUT.labelMaxWidth, room));
+
+    var outer = svgEl("g", { transform: "translate(" + p.x.toFixed(1) + "," + p.y.toFixed(1) + ")", class: "stop-group" });
+
+    var pop = svgEl("g", {});
+    pop.style.transformOrigin = "0px 0px";
+    pop.style.transform = skipAnimation ? "scale(1)" : "scale(0)";
+    pop.style.opacity = skipAnimation ? "1" : "0";
+
+    var circle = svgEl("circle", { cx: 0, cy: 0, r: LAYOUT.circleR, fill: COLOR_ORANGE, stroke: "#FFFFFF", "stroke-width": 3, class: "stop-circle" });
+    pop.appendChild(circle);
+
+    var numText = svgEl("text", { x: 0, y: 1, "text-anchor": "middle", "dominant-baseline": "middle", fill: "#FFFFFF", "font-size": LAYOUT.fontNum, "font-weight": 700, "font-family": FONT_STACK });
+    numText.textContent = kmNum(i + 1);
+    pop.appendChild(numText);
+
+    var nameLines = wrapSvgText(s.name, "700 " + LAYOUT.fontName + "px " + FONT_STACK, labelWidth);
+    // vertically center the 1–3 line name on the circle
+    var nameY = 6 - (nameLines.length - 1) * (NAME_LINE_H / 2);
+    var nameText = svgEl("text", { x: labelX, y: nameY, "text-anchor": anchor, fill: "#1D1D1F", "font-size": LAYOUT.fontName, "font-weight": 700, "font-family": FONT_STACK });
+    nameLines.forEach(function(line, li){
+      var tspan = svgEl("tspan", { x: labelX, dy: li === 0 ? 0 : NAME_LINE_H });
+      tspan.textContent = line;
+      nameText.appendChild(tspan);
+    });
+    pop.appendChild(nameText);
+
+    // invisible hit area spanning the circle + its label, so the whole marker is tappable
+    // (and its own bounding box stays centered on the circle rather than skewed toward the label)
+    var hitPad = 8;
+    var labelSpan = labelWidth + LAYOUT.circleR + LABEL_GAP + hitPad;
+    var hitXMin = side === 1 ? -LAYOUT.circleR - hitPad : -labelSpan;
+    var hitXMax = side === 1 ? labelSpan : LAYOUT.circleR + hitPad;
+    var textHalfH = (nameLines.length * NAME_LINE_H) / 2;
+    var hitYMin = -Math.max(LAYOUT.circleR, textHalfH) - hitPad;
+    var hitYMax = Math.max(LAYOUT.circleR, textHalfH) + hitPad;
+    var hit = svgEl("rect", { x: hitXMin, y: hitYMin, width: hitXMax - hitXMin, height: hitYMax - hitYMin, class: "stop-hit" });
+    pop.insertBefore(hit, pop.firstChild);
+
+    outer.appendChild(pop);
+    svg.appendChild(outer);
+
+    (function(idx){
+      outer.addEventListener("click", function(){ openModal(idx); });
+    })(i);
+
+    markerEls.push({ group: pop, circle: circle, popDelay: i * 0.3 });
+  }
+
+  if (skipAnimation){
+    var totalLenSkip = pathEl.getTotalLength();
+    pathEl.style.strokeDasharray = totalLenSkip;
+    pathEl.style.strokeDashoffset = "0";
+    return;
+  }
+
+  // animate the line drawing in, then pop the markers in, staggered
+  var totalLen = pathEl.getTotalLength();
+  pathEl.style.strokeDasharray = totalLen;
+  pathEl.style.strokeDashoffset = totalLen;
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      pathEl.style.transition = "stroke-dashoffset " + ROAD_DRAW_DURATION + "s ease";
+      pathEl.style.strokeDashoffset = "0";
+    });
+  });
+
+  markerEls.forEach(function(m){
+    var id = setTimeout(function(){
+      m.group.style.transition = "transform .4s cubic-bezier(.34,1.56,.64,1), opacity .25s ease";
+      m.group.style.transform = "scale(1)";
+      m.group.style.opacity = "1";
+    }, (ROAD_DRAW_DURATION + m.popDelay) * 1000);
+    pendingTimers.push(id);
+  });
+}
+
+/* ============================================================
+   REBUILD ROUTE (shared by day switch + temple toggle)
+   ============================================================ */
+
+function rebuildRoute(){
+  activeRoute = buildRoute();
+  buildRouteSVG(activeRoute);
+}
+
+/* Re-layout (no animation replay) on resize/orientation change so the map
+   keeps using real screen space instead of staying sized for the device it
+   first loaded on. */
+var resizeTimer = null;
+var lastLayoutWidth = window.innerWidth;
+window.addEventListener("resize", function(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function(){
+    // mobile browsers fire height-only resizes as the URL bar shows/hides while scrolling — ignore those
+    if (window.innerWidth === lastLayoutWidth) return;
+    lastLayoutWidth = window.innerWidth;
+    if (activeRoute.length) buildRouteSVG(activeRoute, true);
+  }, 150);
+});
+
+/* ============================================================
+   UI WIRING — day pills
+   ============================================================ */
+
+var pillButtons = document.querySelectorAll(".pill");
+var templePanel = document.getElementById("temple-panel");
+
+pillButtons.forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var day = parseInt(btn.getAttribute("data-day"), 10);
+    if (day === currentDay) return;
+    currentDay = day;
+    pillButtons.forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-day"), 10) === currentDay); });
+    templePanel.classList.toggle("show", currentDay === 2);
+    if (currentDay === 2) setTemplePanelCollapsed(false);
+    rebuildRoute();
+  });
+});
+
+/* ---- temple chip panel ---- */
+var chipList = document.getElementById("chip-list");
+TEMPLE_OPTIONS.forEach(function(opt){
+  var chip = document.createElement("button");
+  chip.className = "chip";
+  chip.textContent = opt.name;
+  chip.dataset.id = opt.id;
+  chip.addEventListener("click", function(){
+    var id = chip.dataset.id;
+    var pos = selectedTempleOrder.indexOf(id);
+    if (pos === -1){
+      selectedTempleOrder.push(id);
+      chip.classList.add("selected");
+    } else {
+      selectedTempleOrder.splice(pos, 1);
+      chip.classList.remove("selected");
+    }
+    updateTempleCount();
+    rebuildRoute();
+  });
+  chipList.appendChild(chip);
+});
+
+/* ---- collapse / expand the temple panel ---- */
+var templeToggle = document.getElementById("temple-toggle");
+var templeCount = document.getElementById("temple-count");
+
+function updateTempleCount(){
+  var n = selectedTempleOrder.length;
+  templeCount.textContent = n ? "(" + kmNum(n).replace(/^០/, "") + ")" : "";
+}
+
+function setTemplePanelCollapsed(collapsed){
+  templePanel.classList.toggle("collapsed", collapsed);
+  templeToggle.setAttribute("aria-expanded", String(!collapsed));
+}
+
+templeToggle.addEventListener("click", function(){
+  setTemplePanelCollapsed(!templePanel.classList.contains("collapsed"));
+});
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+var modalBackdrop = document.getElementById("modal-backdrop");
+var modalClose = document.getElementById("modal-close");
+var modalMeta = document.getElementById("modal-meta");
+var modalTitle = document.getElementById("modal-title");
+var modalTips = document.getElementById("modal-tips");
+var modalNext = document.getElementById("modal-next");
+var modalMaps = document.getElementById("modal-maps");
+var modalIllustration = document.getElementById("modal-illustration");
+
+function openModal(index){
+  var s = activeRoute[index];
+  if (!s) return;
+
+  if (selectedIndex !== -1 && markerEls[selectedIndex]) markerEls[selectedIndex].circle.setAttribute("fill", COLOR_ORANGE);
+  selectedIndex = index;
+  if (markerEls[index]) markerEls[index].circle.setAttribute("fill", COLOR_ORANGE_DARK);
+
+  modalMeta.textContent = "ចំណុចទី " + kmNum(index + 1) + (s.time ? " · " + s.time : "");
+  modalTitle.textContent = s.name;
+
+  modalTips.innerHTML = "";
+  s.tips.forEach(function(tip){
+    var li = document.createElement("li");
+    li.textContent = tip;
+    modalTips.appendChild(li);
+  });
+
+  modalNext.innerHTML = s.driveToNext
+    ? "ទៅកន្លែងបន្ទាប់៖ <b>" + s.driveToNext + "</b>"
+    : "<b>កន្លែងចុងក្រោយនៃថ្ងៃ</b>";
+
+  modalMaps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(s.q || s.name);
+  renderModalImage(s);
+
+  modalBackdrop.classList.add("show");
+}
+
+/* Photos are Wikimedia Commons images saved in assets/places/; their licenses
+   require crediting the author, shown as a small link over the photo. */
+var PHOTO_CREDITS = {
+  angkorwat:   { author: "Reinhard Onasch", license: "CC BY-SA 3.0", file: "Angkor_Wat_Sunrise_(209237385).jpeg" },
+  bayon:       { author: "Olaf Tausch", license: "CC BY 3.0", file: "Angkor_Thom_Bayon_28.jpg" },
+  taprohm:     { author: "diego_cue", license: "CC BY-SA 3.0", file: "Ta_Prohm_tree_-_Cambodia_-_panoramio.jpg" },
+  kulen:       { author: "yeowatzup", license: "CC BY 2.0", file: "Phnom_Kulen,_Cambodia_(2211417201).jpg" },
+  skun:        { author: "Thomas Schoch", license: "CC BY-SA 2.5", file: "Fried_tarantula_Cambodia.jpg" },
+  pubstreet:   { author: "Christophe95", license: "CC BY-SA 4.0", file: "Siem_Reap_Pub_Street_02.jpg" },
+  phnompenh:   { author: "MoonsMoon", license: "CC BY 4.0", file: "Phnom_Penh_night.jpg" },
+  banteaysrei: { author: "Pierre André Leclercq", license: "CC BY-SA 4.0", file: "Cambodge_Banteay_Srei_Temple_(2).jpg" },
+  terrace:     { author: "Diego Delso", license: "CC BY-SA 3.0", file: "Terraza_de_los_Elefantes,_Angkor_Thom,_Camboya,_2013-08-16,_DD_04.jpg" },
+  baphuon:     { author: "Marcin Konsek", license: "CC BY-SA 4.0", file: "2016_Angkor,_Angkor_Thom,_Baphuon_(17).jpg" },
+  banteaykdei: { author: "Marcin Konsek", license: "CC BY-SA 4.0", file: "2016_Angkor,_Banteay_Kdei_(09).jpg" },
+  takeo:       { author: "Jorge Láscar", license: "CC BY 2.0", file: "Ta_Keo_(6201959611).jpg" },
+  preahkhan:   { author: "Diego Delso", license: "CC BY-SA 3.0", file: "Preah_Khan,_Angkor,_Camboya,_2013-08-17,_DD_26.JPG" },
+  prerup:      { author: "Diego Delso", license: "CC BY-SA 3.0", file: "Pre_Rup,_Angkor,_Camboya,_2013-08-16,_DD_13.JPG" },
+  bakheng:     { author: "Helt", license: "CC BY-SA 3.0", file: "Phnom_Bakheng.jpg" }
+};
+
+function renderModalImage(s){
+  var credit = s.img && PHOTO_CREDITS[s.img];
+  if (!credit){
+    modalIllustration.innerHTML = getIllustrationSVG(s.icon);
+    return;
+  }
+  modalIllustration.innerHTML = "";
+  var img = document.createElement("img");
+  img.alt = s.name;
+  img.src = "assets/places/" + s.img + ".jpg";
+  img.onerror = function(){ modalIllustration.innerHTML = getIllustrationSVG(s.icon); };
+  modalIllustration.appendChild(img);
+
+  var a = document.createElement("a");
+  a.id = "modal-credit";
+  a.href = "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(credit.file);
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = "© " + credit.author + " · " + credit.license;
+  modalIllustration.appendChild(a);
+}
+
+function closeModal(){ modalBackdrop.classList.remove("show"); }
+modalClose.addEventListener("click", closeModal);
+modalBackdrop.addEventListener("click", function(e){
+  if (e.target === modalBackdrop) closeModal();
+});
+
+/* ---- inline SVG illustrations (white/orange tones only) ---- */
+function svgWrap(inner){
+  return '<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect width="200" height="150" fill="#FFF1E6"/>' + inner + '</svg>';
+}
+var ILLUSTRATIONS = {
+  moon: svgWrap('<circle cx="100" cy="75" r="30" fill="#FF6B1A"/><circle cx="112" cy="65" r="26" fill="#FFF1E6"/><circle cx="50" cy="40" r="3" fill="#E55300"/><circle cx="150" cy="100" r="2.5" fill="#E55300"/><circle cx="160" cy="40" r="2" fill="#E55300"/>'),
+  bowl: svgWrap('<ellipse cx="100" cy="95" rx="55" ry="18" fill="#FF6B1A"/><path d="M45 95 Q45 60 100 60 Q155 60 155 95" fill="#FFFFFF"/><ellipse cx="100" cy="95" rx="40" ry="10" fill="#FFD9BB"/><rect x="92" y="35" width="6" height="28" rx="3" fill="#E55300"/>'),
+  waterfall: svgWrap('<rect x="80" y="20" width="24" height="90" fill="#FFFFFF"/><rect x="85" y="20" width="6" height="90" fill="#FF6B1A" opacity="0.5"/><ellipse cx="92" cy="118" rx="55" ry="14" fill="#FF6B1A"/><path d="M40 40 L160 40 L150 15 L50 15 Z" fill="#E55300"/>'),
+  pinktemple: svgWrap('<polygon points="100,20 140,70 60,70" fill="#FF6B1A"/><rect x="65" y="70" width="70" height="45" fill="#FFFFFF"/><rect x="85" y="85" width="30" height="30" fill="#FFD9BB"/>'),
+  hotel: svgWrap('<rect x="40" y="55" width="120" height="65" fill="#FFFFFF"/><polygon points="40,55 100,25 160,55" fill="#FF6B1A"/><rect x="60" y="75" width="18" height="18" fill="#FFD9BB"/><rect x="90" y="75" width="18" height="18" fill="#FFD9BB"/><rect x="120" y="75" width="18" height="18" fill="#FFD9BB"/><rect x="90" y="100" width="20" height="20" fill="#E55300"/>'),
+  sunrise: svgWrap('<circle cx="100" cy="90" r="28" fill="#FF6B1A"/><line x1="100" y1="40" x2="100" y2="55" stroke="#FF6B1A" stroke-width="4"/><line x1="60" y1="60" x2="70" y2="68" stroke="#FF6B1A" stroke-width="4"/><line x1="140" y1="60" x2="130" y2="68" stroke="#FF6B1A" stroke-width="4"/><rect x="30" y="118" width="140" height="6" fill="#E55300"/><polygon points="100,55 130,118 70,118" fill="#FFFFFF" opacity="0.85"/>'),
+  facetemple: svgWrap('<rect x="55" y="40" width="90" height="78" fill="#FF6B1A"/><circle cx="85" cy="75" r="9" fill="#FFFFFF"/><circle cx="115" cy="75" r="9" fill="#FFFFFF"/><path d="M80 98 Q100 112 120 98" stroke="#FFFFFF" stroke-width="5" fill="none"/>'),
+  pyramidtemple: svgWrap('<polygon points="100,22 150,118 50,118" fill="#FF6B1A"/><polygon points="100,55 130,118 70,118" fill="#FFFFFF"/><polygon points="100,80 115,118 85,118" fill="#FFD9BB"/>'),
+  elephant: svgWrap('<ellipse cx="95" cy="90" rx="40" ry="24" fill="#FF6B1A"/><path d="M135 95 q18 4 14 24" stroke="#E55300" stroke-width="8" fill="none" stroke-linecap="round"/><circle cx="125" cy="80" r="7" fill="#FFFFFF"/><rect x="60" y="108" width="10" height="18" fill="#E55300"/><rect x="110" y="108" width="10" height="18" fill="#E55300"/>'),
+  jungletemple: svgWrap('<rect x="65" y="60" width="70" height="55" fill="#FF6B1A"/><path d="M100 10 C110 40 95 50 100 60" stroke="#E55300" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M80 15 C95 45 85 55 90 60" stroke="#E55300" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="60" cy="30" r="14" fill="#FFD9BB"/>'),
+  quiettemple: svgWrap('<rect x="60" y="65" width="80" height="50" fill="#FFFFFF" stroke="#FF6B1A" stroke-width="4"/><circle cx="100" cy="45" r="16" fill="#FF6B1A"/><ellipse cx="100" cy="125" rx="60" ry="8" fill="#FFD9BB"/>'),
+  blocktemple: svgWrap('<polygon points="100,25 145,120 55,120" fill="#FF6B1A"/><rect x="85" y="95" width="30" height="10" fill="#FFFFFF"/><rect x="90" y="75" width="20" height="10" fill="#FFFFFF"/>'),
+  vinetemple: svgWrap('<rect x="50" y="60" width="100" height="55" fill="#FF6B1A"/><path d="M60 60 C70 80 60 100 70 115" stroke="#E55300" stroke-width="5" fill="none"/><path d="M140 60 C130 80 140 100 130 115" stroke="#E55300" stroke-width="5" fill="none"/><rect x="85" y="80" width="30" height="35" fill="#FFD9BB"/>'),
+  sunsettemple: svgWrap('<circle cx="100" cy="85" r="24" fill="#E55300"/><polygon points="100,45 135,110 65,110" fill="#FF6B1A" opacity="0.9"/><rect x="20" y="118" width="160" height="5" fill="#E55300"/>'),
+  hilltemple: svgWrap('<path d="M20 118 Q100 55 180 118 Z" fill="#FFD9BB"/><polygon points="100,65 125,110 75,110" fill="#FF6B1A"/><circle cx="100" cy="50" r="14" fill="#E55300"/>')
+};
+function getIllustrationSVG(key){
+  return ILLUSTRATIONS[key] || ILLUSTRATIONS.hotel;
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+
+// wait for the Khmer web font so label wrapping is measured with the real glyph widths
+var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+Promise.race([fontsReady, new Promise(function(r){ setTimeout(r, 1500); })]).then(rebuildRoute);
+
+})();
+</script>
+</body>
+</html>
