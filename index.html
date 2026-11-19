@@ -702,7 +702,7 @@ function openModal(index){
   selectedIndex = index;
   if (markerEls[index]) markerEls[index].circle.setAttribute("fill", COLOR_ORANGE_DARK);
 
-  modalMeta.textContent = "ចំណុចទី " + kmNum(index + 1) + (s.time ? " · " + s.time : "");
+  modalMeta.textContent = "ចំណុចទី " + kmNum(index + 1) + (s.time ? " · ម៉ោង " + s.time : "");
   modalTitle.textContent = s.name;
 
   modalNext.innerHTML = s.driveToNext
