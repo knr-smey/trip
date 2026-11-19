@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>ផែនទីដំណើរ សៀមរាប</title>
+<title>កន្លែងទៅលេងនៅ សៀមរាប</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -247,7 +247,7 @@
 <header id="top-bar">
   <div id="title-block">
     <div class="kicker">ដំណើរកម្សាន្ត ២ ថ្ងៃ</div>
-    <h1>ផែនទីដំណើរ <span>សៀមរាប</span></h1>
+    <h1>កន្លែងទៅលេងនៅ <span>សៀមរាប</span></h1>
   </div>
   <div id="day-switch">
     <button class="pill active" data-day="1">ថ្ងៃទី ១</button>
@@ -316,9 +316,13 @@ var DAY1_STOPS = [
     ["ទៅពេលរសៀល — ពន្លឺថ្ងៃធ្វើឲ្យថ្មពណ៌ផ្កាឈូកភ្លឺស្រស់។", "ត្រូវការសំបុត្រអង្គរ ទោះបីប្រាសាទនេះនៅក្រៅរង្វង់អង្គរក៏ដោយ។"],
     "pinktemple", "បើកបរ ≈ ៤៥ នាទី", "Banteay Srei", "banteaysrei"),
   stop("៤:៣០ ល្ងាច", "ត្រឡប់ទៅ សណ្ឋាគារ",
-    "ចូលសណ្ឋាគារ សម្រាក រួចដើរលេង Pub Street និងផ្សាររាត្រី មុនចូលគេងឲ្យឆាប់ — ថ្ងៃទី២ ចាប់ផ្តើមមុនថ្ងៃរះ។",
-    ["គេងឲ្យឆាប់ — ថ្ងៃស្អែកត្រូវក្រោកម៉ោង ៤ ព្រឹក ដើម្បីមើលថ្ងៃរះនៅអង្គរវត្ត។", "ម៉ាស្សាជើងនៅ Pub Street ដើម្បីបន្ធូរកម្លាំងក្រោយធ្វើដំណើរវែង។"],
-    "hotel", null, "Siem Reap", "pubstreet")
+    "ចូលសណ្ឋាគារ សម្រាក និងងូតទឹក មុនចេញទៅដើរលេងពេលយប់។",
+    ["សម្រាកបន្តិច — ធ្វើដំណើរពេញមួយថ្ងៃ។"],
+    "hotel", "តុកតុក ≈ ១០ នាទី", "Siem Reap", "siemreap"),
+  stop("៧:០០ យប់", "ដើរលេង Pub Street",
+    "ផ្លូវកម្សាន្តពេលយប់ដ៏ល្បីបំផុតនៅសៀមរាប ពោរពេញដោយភោជនីយដ្ឋាន បារ តន្ត្រី និងផ្សាររាត្រីនៅក្បែរ។",
+    ["គេងឲ្យឆាប់ — ថ្ងៃស្អែកត្រូវក្រោកម៉ោង ៤ ព្រឹក ដើម្បីមើលថ្ងៃរះនៅអង្គរវត្ត។"],
+    "moon", null, "Pub Street Siem Reap", "pubstreet")
 ];
 
 var ANGKOR_WAT_STOP = stop("៥:០០ ព្រឹក", "ប្រាសាទ អង្គរវត្ត (ថ្ងៃរះ)",
@@ -329,7 +333,7 @@ var ANGKOR_WAT_STOP = stop("៥:០០ ព្រឹក", "ប្រាសាទ 
 var BACK_TO_HOTEL_STOP = stop("", "ត្រឡប់ទៅ សណ្ឋាគារ",
   "បញ្ចប់ថ្ងៃទី២ — ត្រឡប់ចូលទីក្រុងវិញ ដើម្បីសម្រាក ញ៉ាំអាហារពេលល្ងាច និងរំលឹកដំណើរទស្សនាប្រាសាទ។",
   ["ផឹកទឹកឲ្យបានច្រើន — ការដើរទស្សនាប្រាសាទពីរថ្ងៃក្រោមកម្តៅ ធ្វើឲ្យហត់ខ្លាំង។", "កក់ការម៉ាស្សាសម្រាប់យប់នេះ — ជើងរបស់អ្នកនឹងអរគុណ។"],
-  "hotel", null, "Siem Reap", "pubstreet");
+  "hotel", null, "Siem Reap", "siemreap");
 
 var TEMPLE_OPTIONS = [
   { id:"bayon", name:"ប្រាសាទ បាយ័ន", q:"Bayon Temple", img:"bayon",
@@ -726,6 +730,7 @@ var PHOTO_CREDITS = {
   kulen:       { author: "yeowatzup", license: "CC BY 2.0", file: "Phnom_Kulen,_Cambodia_(2211417201).jpg" },
   skun:        { author: "Thomas Schoch", license: "CC BY-SA 2.5", file: "Fried_tarantula_Cambodia.jpg" },
   pubstreet:   { author: "Christophe95", license: "CC BY-SA 4.0", file: "Siem_Reap_Pub_Street_02.jpg" },
+  siemreap:    { author: "Dmitry A. Mottl", license: "CC BY-SA 4.0", file: "Siem_Reap_river.JPG" },
   phnompenh:   { author: "MoonsMoon", license: "CC BY 4.0", file: "Phnom_Penh_night.jpg" },
   banteaysrei: { author: "Pierre André Leclercq", license: "CC BY-SA 4.0", file: "Cambodge_Banteay_Srei_Temple_(2).jpg" },
   terrace:     { author: "Diego Delso", license: "CC BY-SA 3.0", file: "Terraza_de_los_Elefantes,_Angkor_Thom,_Camboya,_2013-08-16,_DD_04.jpg" },
