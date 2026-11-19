@@ -192,20 +192,7 @@
     font-size:13px; font-weight:700; color:var(--orange); margin-bottom:4px;
   }
   #modal-title{
-    font-size:21px; font-weight:800; margin:0 0 8px; color:var(--text);
-  }
-  #modal-tips{
-    margin:0 0 14px; padding:0; list-style:none;
-  }
-  #modal-tips li{
-    font-size:13px; color:var(--text); line-height:1.5;
-    padding-left:18px; position:relative; margin-bottom:6px;
-  }
-  #modal-tips li::before{
-    content:"";
-    position:absolute; left:0; top:7px;
-    width:6px; height:6px; border-radius:50%;
-    background:var(--orange);
+    font-size:21px; font-weight:800; margin:0 0 14px; color:var(--text);
   }
   #modal-next{
     font-size:12.5px; color:var(--muted); margin-bottom:16px;
@@ -287,7 +274,6 @@
     <div id="modal-illustration"></div>
     <div id="modal-meta"></div>
     <h2 id="modal-title"></h2>
-    <ul id="modal-tips"></ul>
     <div id="modal-next"></div>
     <a id="modal-maps" href="#" target="_blank" rel="noopener">📍 បើកក្នុង Google Maps</a>
   </div>
@@ -704,7 +690,6 @@ var modalBackdrop = document.getElementById("modal-backdrop");
 var modalClose = document.getElementById("modal-close");
 var modalMeta = document.getElementById("modal-meta");
 var modalTitle = document.getElementById("modal-title");
-var modalTips = document.getElementById("modal-tips");
 var modalNext = document.getElementById("modal-next");
 var modalMaps = document.getElementById("modal-maps");
 var modalIllustration = document.getElementById("modal-illustration");
@@ -719,13 +704,6 @@ function openModal(index){
 
   modalMeta.textContent = "ចំណុចទី " + kmNum(index + 1) + (s.time ? " · " + s.time : "");
   modalTitle.textContent = s.name;
-
-  modalTips.innerHTML = "";
-  s.tips.forEach(function(tip){
-    var li = document.createElement("li");
-    li.textContent = tip;
-    modalTips.appendChild(li);
-  });
 
   modalNext.innerHTML = s.driveToNext
     ? "ទៅកន្លែងបន្ទាប់៖ <b>" + s.driveToNext + "</b>"
