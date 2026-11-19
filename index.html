@@ -404,7 +404,7 @@ var measureCtx = document.createElement("canvas").getContext("2d");
 
 var MARGIN_TOP = 46;
 var MARGIN_BOTTOM = 46;
-var ROAD_DRAW_DURATION = 2.4; // seconds, matches the original "road draws in" pacing
+var ROAD_DRAW_DURATION = 0.8; // seconds
 
 var activeRoute = [];
 var markerEls = [];     // { group, circle, popDelay }
@@ -567,7 +567,9 @@ function buildRouteSVG(route, skipAnimation){
       outer.addEventListener("click", function(){ openModal(idx); });
     })(i);
 
-    markerEls.push({ group: pop, circle: circle, popDelay: i * 0.3 });
+    // pop each stop in as the line reaches it, instead of waiting for the whole line
+    var reachedAt = route.length > 1 ? i / (route.length - 1) : 0;
+    markerEls.push({ group: pop, circle: circle, popDelay: reachedAt * ROAD_DRAW_DURATION });
   }
 
   if (skipAnimation){
@@ -583,17 +585,17 @@ function buildRouteSVG(route, skipAnimation){
   pathEl.style.strokeDashoffset = totalLen;
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
-      pathEl.style.transition = "stroke-dashoffset " + ROAD_DRAW_DURATION + "s ease";
+      pathEl.style.transition = "stroke-dashoffset " + ROAD_DRAW_DURATION + "s linear"; // linear so stops pop exactly as the line reaches them
       pathEl.style.strokeDashoffset = "0";
     });
   });
 
   markerEls.forEach(function(m){
     var id = setTimeout(function(){
-      m.group.style.transition = "transform .4s cubic-bezier(.34,1.56,.64,1), opacity .25s ease";
+      m.group.style.transition = "transform .3s cubic-bezier(.34,1.56,.64,1), opacity .2s ease";
       m.group.style.transform = "scale(1)";
       m.group.style.opacity = "1";
-    }, (ROAD_DRAW_DURATION + m.popDelay) * 1000);
+    }, m.popDelay * 1000);
     pendingTimers.push(id);
   });
 }
@@ -795,7 +797,7 @@ function getIllustrationSVG(key){
 
 // wait for the Khmer web font so label wrapping is measured with the real glyph widths
 var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-Promise.race([fontsReady, new Promise(function(r){ setTimeout(r, 1500); })]).then(rebuildRoute);
+Promise.race([fontsReady, new Promise(function(r){ setTimeout(r, 600); })]).then(rebuildRoute);
 
 })();
 </script>
