@@ -25,7 +25,9 @@
     color:var(--text);
     -webkit-tap-highlight-color: transparent;
   }
-  html{ background:var(--bg); }
+  /* matches the bottom edge of the background photo: iOS browsers with a see-through
+     floating toolbar show this color behind the toolbar, below the fixed photo layer */
+  html{ background:#BCB5A8; }
   body{ background:transparent; } /* an opaque body bg would paint over the z-index:-1 photo */
   #bg-photo{
     position:fixed; inset:0; z-index:-1; /* stays behind all in-flow page content */
@@ -108,6 +110,14 @@
   .stop-group{ cursor:pointer; }
   .stop-circle{ transition:fill .15s ease; }
   .stop-hit{ fill:transparent; }
+
+  #photo-credits{
+    margin-top:28px; text-align:center;
+    font-size:11px; color:rgba(29,29,31,0.55);
+  }
+  #photo-credits summary{ cursor:pointer; display:inline-block; padding:4px 10px; }
+  #photo-credits ul{ list-style:none; margin:6px 0 0; padding:0; font-family:'Inter', sans-serif; line-height:1.8; }
+  #photo-credits a{ color:inherit; }
 
   /* ---------- day2 temple panel ---------- */
   #temple-panel{
@@ -206,14 +216,6 @@
     opacity:0; transition:opacity .25s ease;
   }
   #modal-illustration img.ready{ opacity:1; }
-  #modal-credit{
-    position:absolute; right:8px; bottom:6px;
-    font-family:'Inter', sans-serif;
-    font-size:10px; color:rgba(255,255,255,0.92);
-    text-shadow:0 1px 3px rgba(0,0,0,0.7);
-    text-decoration:none;
-    max-width:80%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
   #modal-meta{
     font-size:13px; font-weight:700; color:var(--orange); margin-bottom:4px;
   }
@@ -288,6 +290,10 @@
 
 <main id="map-wrap">
   <svg id="route-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <details id="photo-credits">
+    <summary>រូបថត៖ Wikimedia Commons</summary>
+    <ul id="photo-credits-list"></ul>
+  </details>
 </main>
 
 <div id="temple-panel" class="card">
@@ -349,7 +355,7 @@ var DAY1_STOPS = [
   stop("៤:៣០ ល្ងាច", "ត្រឡប់ទៅ Okay 1 Villa",
     "ចូលសណ្ឋាគារ សម្រាក និងងូតទឹក មុនចេញទៅដើរលេងពេលយប់។",
     ["សម្រាកបន្តិច — ធ្វើដំណើរពេញមួយថ្ងៃ។"],
-    "hotel", "តុកតុក ≈ ១០ នាទី", "Okay 1 Villa Siem Reap", "siemreap"),
+    "hotel", "តុកតុក ≈ ១០ នាទី", "Okay 1 Villa Siem Reap", "okay1villa"),
   stop("៧:០០ យប់", "ដើរលេង Pub Street",
     "ផ្លូវកម្សាន្តពេលយប់ដ៏ល្បីបំផុតនៅសៀមរាប ពោរពេញដោយភោជនីយដ្ឋាន បារ តន្ត្រី និងផ្សាររាត្រីនៅក្បែរ។",
     ["គេងឲ្យឆាប់ — ថ្ងៃស្អែកត្រូវក្រោកម៉ោង ៤ ព្រឹក ដើម្បីមើលថ្ងៃរះនៅអង្គរវត្ត។"],
@@ -364,7 +370,7 @@ var ANGKOR_WAT_STOP = stop("៥:០០ ព្រឹក", "ប្រាសាទ 
 var BACK_TO_HOTEL_STOP = stop("", "ត្រឡប់ទៅ Okay 1 Villa",
   "បញ្ចប់ថ្ងៃទី២ — ត្រឡប់ចូលទីក្រុងវិញ ដើម្បីសម្រាក ញ៉ាំអាហារពេលល្ងាច និងរំលឹកដំណើរទស្សនាប្រាសាទ។",
   ["ផឹកទឹកឲ្យបានច្រើន — ការដើរទស្សនាប្រាសាទពីរថ្ងៃក្រោមកម្តៅ ធ្វើឲ្យហត់ខ្លាំង។", "កក់ការម៉ាស្សាសម្រាប់យប់នេះ — ជើងរបស់អ្នកនឹងអរគុណ។"],
-  "hotel", null, "Okay 1 Villa Siem Reap", "siemreap");
+  "hotel", null, "Okay 1 Villa Siem Reap", "okay1villa");
 
 var TEMPLE_OPTIONS = [
   { id:"bayon", name:"ប្រាសាទ បាយ័ន", q:"Bayon Temple", img:"bayon",
@@ -762,7 +768,6 @@ var PHOTO_CREDITS = {
   kulen:       { author: "yeowatzup", license: "CC BY 2.0", file: "Phnom_Kulen,_Cambodia_(2211417201).jpg" },
   skun:        { author: "Thomas Schoch", license: "CC BY-SA 2.5", file: "Fried_tarantula_Cambodia.jpg" },
   pubstreet:   { author: "Christophe95", license: "CC BY-SA 4.0", file: "Siem_Reap_Pub_Street_02.jpg" },
-  siemreap:    { author: "Dmitry A. Mottl", license: "CC BY-SA 4.0", file: "Siem_Reap_river.JPG" },
   phnompenh:   { author: "MoonsMoon", license: "CC BY 4.0", file: "Phnom_Penh_night.jpg" },
   banteaysrei: { author: "Pierre André Leclercq", license: "CC BY-SA 4.0", file: "Cambodge_Banteay_Srei_Temple_(2).jpg" },
   terrace:     { author: "Diego Delso", license: "CC BY-SA 3.0", file: "Terraza_de_los_Elefantes,_Angkor_Thom,_Camboya,_2013-08-16,_DD_04.jpg" },
@@ -791,8 +796,7 @@ function preloadRoutePhotos(route){
 var modalPhotoToken = 0;
 function renderModalImage(s){
   var token = ++modalPhotoToken; // a slow photo from a previously opened card must not overwrite this one
-  var credit = s.img && PHOTO_CREDITS[s.img];
-  if (!credit){
+  if (!s.img){
     modalIllustration.innerHTML = getIllustrationSVG(s.icon);
     return;
   }
@@ -806,15 +810,24 @@ function renderModalImage(s){
   if (img.decode) img.decode().then(reveal, function(){ if (img.complete && img.naturalWidth) reveal(); else fallback(); });
   else { img.onload = reveal; img.onerror = fallback; }
   modalIllustration.appendChild(img);
-
-  var a = document.createElement("a");
-  a.id = "modal-credit";
-  a.href = "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(credit.file);
-  a.target = "_blank";
-  a.rel = "noopener";
-  a.textContent = "© " + credit.author + " · " + credit.license;
-  modalIllustration.appendChild(a);
 }
+
+/* One collapsed credits list at the bottom of the page — the photos' CC licenses
+   require crediting the photographers, without putting text over every photo. */
+(function buildPhotoCredits(){
+  var list = document.getElementById("photo-credits-list");
+  Object.keys(PHOTO_CREDITS).forEach(function(key){
+    var c = PHOTO_CREDITS[key];
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(c.file);
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = c.author + " · " + c.license;
+    li.appendChild(a);
+    list.appendChild(li);
+  });
+})();
 
 function closeModal(){ modalBackdrop.classList.remove("show"); }
 modalClose.addEventListener("click", closeModal);
