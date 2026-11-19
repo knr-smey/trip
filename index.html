@@ -156,11 +156,13 @@
   #modal-backdrop{
     position:fixed; inset:0; z-index:50;
     background:rgba(29,29,31,0.45);
-    display:none;
+    display:flex;
     align-items:center; justify-content:center;
     padding:20px;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .22s ease, visibility .22s ease;
   }
-  #modal-backdrop.show{ display:flex; }
+  #modal-backdrop.show{ opacity:1; visibility:visible; pointer-events:auto; }
   #modal-card{
     background:var(--white);
     border-radius:22px;
@@ -171,7 +173,10 @@
     position:relative;
     box-shadow:0 24px 60px rgba(0,0,0,0.25);
     padding:0 26px 26px;
+    transform:translateY(16px) scale(.97);
+    transition:transform .26s cubic-bezier(.2,.8,.2,1);
   }
+  #modal-backdrop.show #modal-card{ transform:none; }
   #modal-close{
     position:absolute; top:14px; right:14px; z-index:2;
     width:34px; height:34px;
@@ -196,7 +201,11 @@
     overflow:hidden;
   }
   #modal-illustration svg{ width:100%; height:100%; }
-  #modal-illustration img{ width:100%; height:100%; object-fit:cover; display:block; }
+  #modal-illustration img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    opacity:0; transition:opacity .25s ease;
+  }
+  #modal-illustration img.ready{ opacity:1; }
   #modal-credit{
     position:absolute; right:8px; bottom:6px;
     font-family:'Inter', sans-serif;
@@ -633,6 +642,7 @@ function buildRouteSVG(route, skipAnimation){
 function rebuildRoute(){
   activeRoute = buildRoute();
   buildRouteSVG(activeRoute);
+  preloadRoutePhotos(activeRoute);
 }
 
 /* Re-layout (no animation replay) on resize/orientation change so the map
@@ -764,7 +774,23 @@ var PHOTO_CREDITS = {
   bakheng:     { author: "Helt", license: "CC BY-SA 3.0", file: "Phnom_Bakheng.jpg" }
 };
 
+function photoSrc(key){ return "assets/places/" + key + ".jpg"; }
+
+/* Download the current route's photos in the background so cards open with
+   the photo already there instead of loading it on tap. */
+var preloadedPhotos = {};
+function preloadRoutePhotos(route){
+  route.forEach(function(s){
+    if (!s.img || preloadedPhotos[s.img]) return;
+    var img = new Image();
+    img.src = photoSrc(s.img);
+    preloadedPhotos[s.img] = img; // keep a reference so it isn't discarded before it's cached
+  });
+}
+
+var modalPhotoToken = 0;
 function renderModalImage(s){
+  var token = ++modalPhotoToken; // a slow photo from a previously opened card must not overwrite this one
   var credit = s.img && PHOTO_CREDITS[s.img];
   if (!credit){
     modalIllustration.innerHTML = getIllustrationSVG(s.icon);
@@ -773,8 +799,12 @@ function renderModalImage(s){
   modalIllustration.innerHTML = "";
   var img = document.createElement("img");
   img.alt = s.name;
-  img.src = "assets/places/" + s.img + ".jpg";
-  img.onerror = function(){ modalIllustration.innerHTML = getIllustrationSVG(s.icon); };
+  img.src = photoSrc(s.img);
+  // reveal only once fully decoded, so it never paints in half-drawn
+  var reveal = function(){ if (token === modalPhotoToken) img.classList.add("ready"); };
+  var fallback = function(){ if (token === modalPhotoToken) modalIllustration.innerHTML = getIllustrationSVG(s.icon); };
+  if (img.decode) img.decode().then(reveal, function(){ if (img.complete && img.naturalWidth) reveal(); else fallback(); });
+  else { img.onload = reveal; img.onerror = fallback; }
   modalIllustration.appendChild(img);
 
   var a = document.createElement("a");
