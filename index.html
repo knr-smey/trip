@@ -110,6 +110,7 @@
   .stop-group{ cursor:pointer; }
   .stop-circle{ transition:fill .15s ease; }
   .stop-hit{ fill:transparent; }
+  .leg-pill{ pointer-events:none; }
 
   /* ---------- day2 temple panel ---------- */
   #temple-panel{
@@ -132,6 +133,12 @@
   #temple-panel.collapsed #temple-toggle{ margin-bottom:0; }
   #temple-panel.collapsed #temple-toggle .chevron{ transform:rotate(180deg); }
   #temple-panel.collapsed #chip-list{ display:none; }
+  .chip-group-title{
+    flex-basis:100%;
+    font-size:12px; font-weight:600; color:var(--muted);
+    margin:4px 0 -2px;
+  }
+  .chip-group-title:first-child{ margin-top:0; }
   #chip-list{
     display:flex; flex-wrap:wrap; gap:8px;
     max-height:34vh; overflow-y:auto;
@@ -286,7 +293,7 @@
 
 <div id="temple-panel" class="card">
   <button id="temple-toggle" type="button" aria-expanded="true" aria-controls="chip-list">
-    <span class="toggle-title">ជ្រើសរើសប្រាសាទ បន្ទាប់ពីអង្គរវត្ត</span>
+    <span class="toggle-title">ជ្រើសរើសកន្លែង បន្ទាប់ពីអង្គរវត្ត</span>
     <span id="temple-count"></span>
     <svg class="chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
@@ -350,52 +357,72 @@ var DAY1_STOPS = [
     "moon", null, "Pub Street Siem Reap", "pubstreet")
 ];
 
-var ANGKOR_WAT_STOP = stop("៥:០០ ព្រឹក", "ប្រាសាទ អង្គរវត្ត (ថ្ងៃរះ)",
-  "វិមានសាសនាធំជាងគេលើពិភពលោក និងជាបេះដូងនៃអាណាចក្រអង្គរ — ការមើលថ្ងៃរះពីក្រោយកំពូលទាំងប្រាំ គឺជាពេលវេលាដ៏សំខាន់បំផុតនៃដំណើរនេះ។",
-  ["ទៅដល់ម៉ោង ៥ ព្រឹក ដើម្បីយកកន្លែងល្អនៅមុខស្រះទឹក មុនមនុស្សច្រើន។", "យកពិលតាមខ្លួន — ផ្លូវដើរចូលងងឹត គ្មានភ្លើងបំភ្លឺ។"],
-  "sunrise", "បើកបរ ≈ ១០–១៥ នាទី", "Angkor Wat", "angkorwat");
+/* ---- Day 2: Angkor Wat sunrise, then the places you pick, then back to the hotel.
+   Times are calculated, not fixed: each arrival = previous arrival + time spent there
+   (`stay`, minutes) + estimated travel between the two places' coordinates. ---- */
+var DAY2_START = { name:"ប្រាសាទ អង្គរវត្ត (ថ្ងៃរះ)", q:"Angkor Wat", img:"angkorwat", icon:"sunrise",
+  lat:13.4125, lng:103.8670, stay:180, arrive:5 * 60 };
+var DAY2_END = { name:"ត្រឡប់ទៅ Okay 1 Villa", q:"Okay 1 Villa Siem Reap", img:"okay1villa", icon:"hotel",
+  lat:13.3600, lng:103.8580 }; // approximate: central Siem Reap
 
-var BACK_TO_HOTEL_STOP = stop("", "ត្រឡប់ទៅ Okay 1 Villa",
-  "បញ្ចប់ថ្ងៃទី២ — ត្រឡប់ចូលទីក្រុងវិញ ដើម្បីសម្រាក ញ៉ាំអាហារពេលល្ងាច និងរំលឹកដំណើរទស្សនាប្រាសាទ។",
-  ["ផឹកទឹកឲ្យបានច្រើន — ការដើរទស្សនាប្រាសាទពីរថ្ងៃក្រោមកម្តៅ ធ្វើឲ្យហត់ខ្លាំង។", "កក់ការម៉ាស្សាសម្រាប់យប់នេះ — ជើងរបស់អ្នកនឹងអរគុណ។"],
-  "hotel", null, "Okay 1 Villa Siem Reap", "okay1villa");
-
-var TEMPLE_OPTIONS = [
-  { id:"bayon", name:"ប្រាសាទ បាយ័ន", q:"Bayon Temple", img:"bayon",
-    desc:"ល្បីដោយសារព្រះភក្ត្រថ្មធំៗញញឹមស្រស់ ចំនួន ២១៦ — ជាកន្លែងដែលគេថតរូបច្រើនបំផុតមួយនៅអង្គរធំ។",
-    tips:["ឡើងទៅជាន់ខាងលើ ដើម្បីមើលព្រះភក្ត្រឲ្យបានជិត។", "ទៅពេលព្រឹកជ្រៅ ពេលពន្លឺចាំងលើព្រះភក្ត្រស្មើៗគ្នា។"], icon:"facetemple" },
-  { id:"baphuon", name:"ប្រាសាទ បាពួន", q:"Baphuon", img:"baphuon",
-    desc:"ប្រាសាទភ្នំខ្ពស់ពីសតវត្សរ៍ទី១១ ដែលធ្លាប់មានព្រះពុទ្ធរូបផ្ទំដ៏ធំ សាងនៅផ្នែកខាងលិច។",
-    tips:["ជណ្តើរចោតណាស់ — សូមកាន់ដៃជណ្តើរ។", "មនុស្សតិចជាងបាយ័ន — ល្អសម្រាប់សម្រាកបន្តិច។"], icon:"pyramidtemple" },
-  { id:"terrace", name:"ព្រះលាន ជល់ដំរី", q:"Terrace of the Elephants", img:"terrace",
-    desc:"វេទិកាទស្សនាវែងរបស់ព្រះមហាក្សត្រ មានចម្លាក់ដំរីទំហំប៉ុនពិត ប្រើសម្រាប់ពិធីបុណ្យ និងក្បួនដង្ហែ។",
-    tips:["សង្កេតមើលប្រមោយដំរី ដែលឆ្លាក់ជាសសរទ្រវេទិកា។", "ឈប់មើលបន្តិចបានហើយ — ល្អទៅក្រោយប្រាសាទបាពួនភ្លាម។"], icon:"elephant" },
-  { id:"taprohm", name:"ប្រាសាទ តាព្រហ្ម", q:"Ta Prohm", img:"taprohm",
-    desc:"ប្រាសាទ «ក្នុងព្រៃ» ដែលដើមឈើធំៗដុះគ្របដណ្តប់ពាក់កណ្តាល — ល្បីតាមរយៈខ្សែភាពយន្ត Tomb Raider។",
-    tips:["ទ្វារឫសឈើដ៏ល្បីមានមនុស្សច្រើន — ទៅឲ្យឆាប់ ឬរង់ចាំបន្តិច។", "ប្រយ័ត្នដើរ — ថ្មមិនរាបស្មើ ហើយមានឫសឈើគ្របដណ្តប់។"], icon:"jungletemple" },
-  { id:"banteaykdei", name:"ប្រាសាទ បន្ទាយក្តី", q:"Banteay Kdei", img:"banteaykdei",
-    desc:"វត្តអារាមព្រះពុទ្ធសាសនាដ៏ស្ងប់ស្ងាត់ មានទីធ្លាស្ងប់ និងរានហាលចាស់ៗគ្របដោយស្លែ ដែលភ្ញៀវមកតិច។",
-    tips:["កន្លែងល្អសម្រាប់គេចពីមនុស្សច្រើន មួយភ្លែត។", "ទៅមើលស្រះស្រង់ ដែលនៅទល់មុខផ្លូវផងដែរ។"], icon:"quiettemple" },
-  { id:"takeo", name:"ប្រាសាទ តាកែវ", q:"Ta Keo", img:"takeo",
-    desc:"ប្រាសាទភ្នំដែលសាងមិនទាន់រួច ធ្វើពីថ្មភក់សុទ្ធ ផ្តល់ឱកាសកម្រក្នុងការមើលការសាងសង់ខ្មែរបុរាណ។",
-    tips:["ជណ្តើរកណ្តាលចោត ប៉ុន្តែទិដ្ឋភាពពីលើស្អាតបំផុតមួយក្នុងតំបន់។", "មានម្លប់តិច — យកទឹក និងមួកតាមខ្លួន។"], icon:"blocktemple" },
-  { id:"preahkhan", name:"ប្រាសាទ ព្រះខ័ន", q:"Preah Khan", img:"preahkhan",
-    desc:"វត្តអារាមធំទូលាយ មានរានហាលវែងៗពោរពេញដោយវល្លិ៍ ស្រដៀងតាព្រហ្ម តែមនុស្សតិចជាងច្រើន។",
-    tips:["ដើរតាមរានហាលកណ្តាលត្រង់ ដើម្បីថតរូបបានស្អាត។", "ទុកពេលឲ្យបានច្រើន — ជាប្រាសាទធំមួយ។"], icon:"vinetemple" },
-  { id:"prerup", name:"ប្រាសាទ ប្រែរូប (ថ្ងៃលិច)", q:"Pre Rup", img:"prerup",
-    desc:"ប្រាសាទភ្នំធ្វើពីឥដ្ឋ និងថ្មបាយក្រៀមពណ៌ក្រហមក្តៅ ជាកន្លែងមើលថ្ងៃលិចល្អបំផុតមួយនៅអង្គរ។",
-    tips:["ទៅដល់យ៉ាងតិច ៤៥ នាទីមុនថ្ងៃលិច ដើម្បីយកកន្លែងល្អនៅជាន់លើ។", "ឥដ្ឋចាំងពណ៌ទឹកក្រូចក្រហមពេលល្ងាច — ល្អសម្រាប់ថតរូប។"], icon:"sunsettemple" },
-  { id:"bakheng", name:"ភ្នំបាខែង (ថ្ងៃលិច)", q:"Phnom Bakheng", img:"bakheng",
-    desc:"ប្រាសាទលើកំពូលភ្នំ មើលឃើញថ្ងៃលិចពីលើព្រៃអង្គរ និងកំពូលអង្គរវត្តពីចម្ងាយ។",
-    tips:["កំណត់ចំនួនភ្ញៀវនៅលើកំពូល — ទៅឲ្យឆាប់សម្រាប់ថ្ងៃលិច។", "ផ្លូវឡើងខ្លី តែចោត — ពាក់ស្បែកជើងឲ្យសមរម្យ។"], icon:"hilltemple" }
+var DAY2_CATEGORIES = [
+  { id:"temple", label:"ប្រាសាទ" },
+  { id:"food",   label:"ញ៉ាំ" },
+  { id:"fun",    label:"កម្សាន្ត" }
 ];
 
-var DAY2_TEMPLE_TIMES = ["៨:៣០ ព្រឹក","៩:៤៥ ព្រឹក","១០:៤៥ ព្រឹក","១១:៤៥ ព្រឹក","១:៣០ រសៀល","២:៣០ រសៀល","៣:៣០ រសៀល","៤:៣០ ល្ងាច","៥:១៥ ល្ងាច"];
+var DAY2_PLACES = [
+  { id:"bayon",        cat:"temple", name:"ប្រាសាទ បាយ័ន",            q:"Bayon Temple",             img:"bayon",        icon:"facetemple",    lat:13.4412, lng:103.8590, stay:60 },
+  { id:"baphuon",      cat:"temple", name:"ប្រាសាទ បាពួន",            q:"Baphuon",                  img:"baphuon",      icon:"pyramidtemple", lat:13.4436, lng:103.8565, stay:40 },
+  { id:"terrace",      cat:"temple", name:"ព្រះលាន ជល់ដំរី",           q:"Terrace of the Elephants", img:"terrace",      icon:"elephant",      lat:13.4446, lng:103.8587, stay:30 },
+  { id:"taprohm",      cat:"temple", name:"ប្រាសាទ តាព្រហ្ម",          q:"Ta Prohm",                 img:"taprohm",      icon:"jungletemple",  lat:13.4350, lng:103.8890, stay:60 },
+  { id:"banteaykdei",  cat:"temple", name:"ប្រាសាទ បន្ទាយក្តី",         q:"Banteay Kdei",             img:"banteaykdei",  icon:"quiettemple",   lat:13.4300, lng:103.8980, stay:40 },
+  { id:"takeo",        cat:"temple", name:"ប្រាសាទ តាកែវ",            q:"Ta Keo",                   img:"takeo",        icon:"blocktemple",   lat:13.4442, lng:103.8930, stay:30 },
+  { id:"preahkhan",    cat:"temple", name:"ប្រាសាទ ព្រះខ័ន",            q:"Preah Khan",               img:"preahkhan",    icon:"vinetemple",    lat:13.4622, lng:103.8716, stay:60 },
+  { id:"prerup",       cat:"temple", name:"ប្រាសាទ ប្រែរូប (ថ្ងៃលិច)",   q:"Pre Rup",                  img:"prerup",       icon:"sunsettemple",  lat:13.4350, lng:103.9218, stay:60 },
+  { id:"bakheng",      cat:"temple", name:"ភ្នំបាខែង (ថ្ងៃលិច)",        q:"Phnom Bakheng",            img:"bakheng",      icon:"hilltemple",    lat:13.4240, lng:103.8560, stay:60 },
+  { id:"preahdak",     cat:"food",   name:"ភូមិព្រះដាក់ (នំបញ្ចុក)",     q:"Preah Dak Siem Reap",      img:"preahdak",     icon:"bowl",          lat:13.4935, lng:103.9415, stay:45 },
+  { id:"street60",     cat:"food",   name:"ផ្លូវ៦០ (ម្ហូបពេលយប់)",      q:"Street 60 Night Market Siem Reap", img:"street60", icon:"bowl",       lat:13.3700, lng:103.8800, stay:60 },
+  { id:"oldmarket",    cat:"food",   name:"ផ្សារចាស់",                q:"Old Market Siem Reap",     img:"oldmarket",    icon:"bowl",          lat:13.3540, lng:103.8555, stay:60 },
+  { id:"nightmarket",  cat:"food",   name:"ផ្សាររាត្រី អង្គរ",           q:"Angkor Night Market",      img:"nightmarket",  icon:"moon",          lat:13.3530, lng:103.8530, stay:60 },
+  { id:"angchek",      cat:"fun",    name:"ព្រះអង្គចេក ព្រះអង្គចម",      q:"Preah Ang Chek Preah Ang Chom", img:"angchek", icon:"quiettemple",   lat:13.3620, lng:103.8590, stay:30 },
+  { id:"westbaray",    cat:"fun",    name:"បារាយណ៍ខាងលិច",            q:"West Baray",               img:"westbaray",    icon:"waterfall",     lat:13.4300, lng:103.8000, stay:90 },
+  { id:"kampongphluk", cat:"fun",    name:"ភូមិបណ្តែតទឹក កំពង់ភ្លុក",     q:"Kampong Phluk",            img:"kampongphluk", icon:"waterfall",     lat:13.2190, lng:103.9810, stay:150 },
+  { id:"phnomkrom",    cat:"fun",    name:"ភ្នំក្រោម (ថ្ងៃលិច)",         q:"Phnom Krom",               img:"phnomkrom",    icon:"hilltemple",    lat:13.2840, lng:103.8260, stay:60 }
+];
 
 var KM_DIGITS = "០១២៣៤៥៦៧៨៩";
-function kmNum(n){
-  var s = (n < 10 ? "0" : "") + n;
-  return s.replace(/[0-9]/g, function(d){ return KM_DIGITS[+d]; });
+function kmDigits(v){
+  return String(v).replace(/[0-9]/g, function(d){ return KM_DIGITS[+d]; });
+}
+function kmNum(n){ return kmDigits((n < 10 ? "0" : "") + n); }
+
+/* minutes-since-midnight → "៨:៣០ ព្រឹក" */
+function formatClock(min){
+  var h = Math.floor(min / 60) % 24, m = min % 60;
+  var period = min < 12 * 60 ? "ព្រឹក" : min < 13 * 60 ? "ថ្ងៃត្រង់" : min < 16 * 60 ? "រសៀល" : min < 18 * 60 + 30 ? "ល្ងាច" : "យប់";
+  return kmDigits(h % 12 || 12) + ":" + kmDigits((m < 10 ? "0" : "") + m) + " " + period;
+}
+
+/* minutes → "១៥ នាទី" / "១ ម៉ោង ១០ នាទី" */
+function formatDuration(min){
+  if (min < 60) return kmDigits(min) + " នាទី";
+  var h = Math.floor(min / 60), m = min % 60;
+  return kmDigits(h) + " ម៉ោង" + (m ? " " + kmDigits(m) + " នាទី" : "");
+}
+
+/* Rough door-to-door time by car/tuk-tuk: straight-line distance × 1.35 for real roads,
+   at ~22 km/h for short hops in town/park rising to ~40 km/h on longer open roads,
+   plus 5 min to park and walk in. Rounded to 5 minutes. */
+function travelMinutes(a, b){
+  var R = 6371, toRad = Math.PI / 180;
+  var dLat = (b.lat - a.lat) * toRad, dLng = (b.lng - a.lng) * toRad;
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(a.lat * toRad) * Math.cos(b.lat * toRad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  var roadKm = 2 * R * Math.asin(Math.sqrt(h)) * 1.35;
+  var speed = 22 + Math.min(18, roadKm * 0.8);
+  var minutes = roadKm / speed * 60 + 5;
+  return Math.max(5, Math.round(minutes / 5) * 5);
 }
 
 var FONT_STACK = "'Kantumruy Pro', Inter, sans-serif";
@@ -405,21 +432,29 @@ var FONT_STACK = "'Kantumruy Pro', Inter, sans-serif";
    ============================================================ */
 
 var currentDay = 1;
-var selectedTempleOrder = []; // array of temple ids, in click order
+var selectedPlaceOrder = []; // Day 2 place ids, in the order they were picked
 
 function buildRoute(){
   if (currentDay === 1) return DAY1_STOPS.slice();
 
-  var route = [Object.assign({}, ANGKOR_WAT_STOP)];
-  for (var i = 0; i < selectedTempleOrder.length; i++){
-    var opt = TEMPLE_OPTIONS.filter(function(t){ return t.id === selectedTempleOrder[i]; })[0];
-    if (!opt) continue;
-    var time = DAY2_TEMPLE_TIMES[i] || "";
-    route.push(stop(time, opt.name, opt.desc, opt.tips, opt.icon, "បើកបរ ≈ ១០–១៥ នាទី", opt.q, opt.img));
-  }
-  route.push(Object.assign({}, BACK_TO_HOTEL_STOP));
-  // last temple should drive to hotel, not another temple
-  if (route.length > 1) route[route.length - 2].driveToNext = "បើកបរ ≈ ២០ នាទី";
+  var places = [DAY2_START];
+  selectedPlaceOrder.forEach(function(id){
+    var p = DAY2_PLACES.filter(function(x){ return x.id === id; })[0];
+    if (p) places.push(p);
+  });
+  places.push(DAY2_END);
+
+  var route = [];
+  var clock = DAY2_START.arrive;
+  places.forEach(function(p, i){
+    if (i > 0){
+      var t = travelMinutes(places[i - 1], p);
+      route[i - 1].driveToNext = "បើកបរ ≈ " + formatDuration(t);
+      clock += t;
+    }
+    route.push(stop(formatClock(clock), p.name, "", [], p.icon, null, p.q, p.img));
+    clock += p.stay || 0;
+  });
   return route;
 }
 
@@ -601,6 +636,30 @@ function buildRouteSVG(route, skipAnimation){
     markerEls.push({ group: pop, circle: circle, popDelay: reachedAt * ROAD_DRAW_DURATION });
   }
 
+  // travel-time label on the line, halfway between each pair of stops
+  var legEls = [];
+  for (var j = 0; j < route.length - 1; j++){
+    if (!route[j].driveToNext) continue;
+    var legText = route[j].driveToNext.split("≈").pop().trim();
+    var mid = pointOnPathAtY(pathEl, (pts[j].y + pts[j + 1].y) / 2);
+    measureCtx.font = "600 11px " + FONT_STACK;
+    var pillW = measureCtx.measureText(legText).width + 18;
+
+    var leg = svgEl("g", { transform: "translate(" + mid.x.toFixed(1) + "," + mid.y.toFixed(1) + ")", class: "leg-pill" });
+    var legPop = svgEl("g", {});
+    legPop.style.transformOrigin = "0px 0px";
+    legPop.style.transform = skipAnimation ? "scale(1)" : "scale(0)";
+    legPop.style.opacity = skipAnimation ? "1" : "0";
+    legPop.appendChild(svgEl("rect", { x: -pillW / 2, y: -11, width: pillW, height: 22, rx: 11, fill: "#FFFFFF", stroke: COLOR_ORANGE, "stroke-width": 1.5 }));
+    var legLabel = svgEl("text", { x: 0, y: 1, "text-anchor": "middle", "dominant-baseline": "middle", fill: COLOR_ORANGE_DARK, "font-size": 11, "font-weight": 600, "font-family": FONT_STACK });
+    legLabel.textContent = legText;
+    legPop.appendChild(legLabel);
+    leg.appendChild(legPop);
+    svg.insertBefore(leg, pathEl.nextSibling); // above the line, below the stop markers
+
+    legEls.push({ group: legPop, popDelay: ((j + 0.5) / (route.length - 1)) * ROAD_DRAW_DURATION });
+  }
+
   if (skipAnimation){
     var totalLenSkip = pathEl.getTotalLength();
     pathEl.style.strokeDasharray = totalLenSkip;
@@ -619,7 +678,7 @@ function buildRouteSVG(route, skipAnimation){
     });
   });
 
-  markerEls.forEach(function(m){
+  markerEls.concat(legEls).forEach(function(m){
     var id = setTimeout(function(){
       m.group.style.transition = "transform .3s cubic-bezier(.34,1.56,.64,1), opacity .2s ease";
       m.group.style.transform = "scale(1)";
@@ -627,6 +686,17 @@ function buildRouteSVG(route, skipAnimation){
     }, m.popDelay * 1000);
     pendingTimers.push(id);
   });
+}
+
+/* The route only ever moves downward, so y increases with path length:
+   binary-search the length at which the line reaches a given y. */
+function pointOnPathAtY(pathEl, y){
+  var lo = 0, hi = pathEl.getTotalLength();
+  for (var k = 0; k < 24; k++){
+    var midLen = (lo + hi) / 2;
+    if (pathEl.getPointAtLength(midLen).y < y) lo = midLen; else hi = midLen;
+  }
+  return pathEl.getPointAtLength((lo + hi) / 2);
 }
 
 /* ============================================================
@@ -673,27 +743,32 @@ pillButtons.forEach(function(btn){
   });
 });
 
-/* ---- temple chip panel ---- */
+/* ---- Day 2 place picker, grouped by category ---- */
 var chipList = document.getElementById("chip-list");
-TEMPLE_OPTIONS.forEach(function(opt){
-  var chip = document.createElement("button");
-  chip.className = "chip";
-  chip.textContent = opt.name;
-  chip.dataset.id = opt.id;
-  chip.addEventListener("click", function(){
-    var id = chip.dataset.id;
-    var pos = selectedTempleOrder.indexOf(id);
-    if (pos === -1){
-      selectedTempleOrder.push(id);
-      chip.classList.add("selected");
-    } else {
-      selectedTempleOrder.splice(pos, 1);
-      chip.classList.remove("selected");
-    }
-    updateTempleCount();
-    rebuildRoute();
+DAY2_CATEGORIES.forEach(function(cat){
+  var heading = document.createElement("div");
+  heading.className = "chip-group-title";
+  heading.textContent = cat.label;
+  chipList.appendChild(heading);
+
+  DAY2_PLACES.filter(function(p){ return p.cat === cat.id; }).forEach(function(place){
+    var chip = document.createElement("button");
+    chip.className = "chip";
+    chip.textContent = place.name;
+    chip.addEventListener("click", function(){
+      var pos = selectedPlaceOrder.indexOf(place.id);
+      if (pos === -1){
+        selectedPlaceOrder.push(place.id);
+        chip.classList.add("selected");
+      } else {
+        selectedPlaceOrder.splice(pos, 1);
+        chip.classList.remove("selected");
+      }
+      updateTempleCount();
+      rebuildRoute();
+    });
+    chipList.appendChild(chip);
   });
-  chipList.appendChild(chip);
 });
 
 /* ---- collapse / expand the temple panel ---- */
@@ -701,8 +776,8 @@ var templeToggle = document.getElementById("temple-toggle");
 var templeCount = document.getElementById("temple-count");
 
 function updateTempleCount(){
-  var n = selectedTempleOrder.length;
-  templeCount.textContent = n ? "(" + kmNum(n).replace(/^០/, "") + ")" : "";
+  var n = selectedPlaceOrder.length;
+  templeCount.textContent = n ? "(" + kmDigits(n) + ")" : "";
 }
 
 function setTemplePanelCollapsed(collapsed){
